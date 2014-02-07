@@ -15,9 +15,77 @@
 #include "utils.h"
 #include "nldiffusion_functions.h"
 
+// Options structure
+struct CV_EXPORTS_W_SIMPLE AKAZEOptions {
+
+  CV_PROP_RW int omin;
+  CV_PROP_RW int omax;
+  CV_PROP_RW int nsublevels;
+  CV_PROP_RW int img_width;
+  CV_PROP_RW int img_height;
+  CV_PROP_RW int diffusivity;
+  CV_PROP_RW float soffset;
+  CV_PROP_RW float sderivatives;
+  CV_PROP_RW float dthreshold;
+  CV_PROP_RW float dthreshold2;
+  CV_PROP_RW int descriptor;
+  CV_PROP_RW int descriptor_size;
+  CV_PROP_RW int descriptor_channels;
+  CV_PROP_RW int descriptor_pattern_size;
+  CV_PROP_RW bool save_scale_space;
+  CV_PROP_RW bool save_keypoints;
+  CV_PROP_RW bool verbosity;
+
+  CV_WRAP AKAZEOptions() {
+
+    // Load the default options
+    soffset = DEFAULT_SCALE_OFFSET;
+    omax = DEFAULT_OCTAVE_MAX;
+    nsublevels = DEFAULT_NSUBLEVELS;
+    dthreshold = DEFAULT_DETECTOR_THRESHOLD;
+    diffusivity = DEFAULT_DIFFUSIVITY_TYPE;
+    descriptor = DEFAULT_DESCRIPTOR;
+    descriptor_size = DEFAULT_LDB_DESCRIPTOR_SIZE;
+    descriptor_channels = DEFAULT_LDB_CHANNELS;
+    descriptor_pattern_size = DEFAULT_LDB_PATTERN_SIZE;
+    sderivatives = DEFAULT_SIGMA_SMOOTHING_DERIVATIVES;
+    save_scale_space = DEFAULT_SAVE_SCALE_SPACE;
+    save_keypoints = DEFAULT_SAVE_KEYPOINTS;
+    verbosity = DEFAULT_VERBOSITY;
+  }
+
+  friend std::ostream& operator<<(std::ostream& os,
+                                  const AKAZEOptions& akaze_options) {
+
+    os << std::left;
+#define CHECK_AKAZE_OPTION(option) \
+  os << std::setw(33) << #option << " =  " << option << std::endl
+
+    // Scale-space parameters.
+    CHECK_AKAZE_OPTION(akaze_options.omax);
+    CHECK_AKAZE_OPTION(akaze_options.nsublevels);
+    CHECK_AKAZE_OPTION(akaze_options.soffset);
+    CHECK_AKAZE_OPTION(akaze_options.sderivatives);
+    CHECK_AKAZE_OPTION(akaze_options.diffusivity);
+    // Detection parameters.
+    CHECK_AKAZE_OPTION(akaze_options.dthreshold);
+    // Descriptor parameters.
+    CHECK_AKAZE_OPTION(akaze_options.descriptor);
+    CHECK_AKAZE_OPTION(akaze_options.descriptor_channels);
+    CHECK_AKAZE_OPTION(akaze_options.descriptor_size);
+    // Save scale-space
+    CHECK_AKAZE_OPTION(akaze_options.save_scale_space);
+    // Verbose option for debug.
+    CHECK_AKAZE_OPTION(akaze_options.verbosity);
+#undef CHECK_AKAZE_OPTIONS
+
+    return os;
+  }
+};
+
 /* ************************************************************************* */
 // AKAZE Class Declaration
-class AKAZE {
+class CV_EXPORTS_W AKAZE {
 
 private:
 
@@ -67,7 +135,7 @@ private:
 public:
 
   // Constructor
-  AKAZE(const AKAZEOptions &options);
+  CV_WRAP AKAZE(const AKAZEOptions &options);
 
   // Destructor
   ~AKAZE(void);
@@ -120,8 +188,8 @@ public:
 
   // Scale Space methods
   void Allocate_Memory_Evolution(void);
-  int Create_Nonlinear_Scale_Space(const cv::Mat& img);
-  void Feature_Detection(std::vector<cv::KeyPoint>& kpts);
+  CV_WRAP int Create_Nonlinear_Scale_Space(const cv::Mat& img);
+  CV_WRAP void Feature_Detection(CV_OUT std::vector<cv::KeyPoint>& kpts);
   void Compute_Determinant_Hessian_Response(void);
   void Compute_Multiscale_Derivatives(void);
 	void Find_Scale_Space_Extrema(std::vector<cv::KeyPoint>& kpts);
@@ -129,7 +197,7 @@ public:
   void Feature_Suppression_Distance(std::vector<cv::KeyPoint>& kpts, float mdist) const;
 
   // Feature description methods
-  void Compute_Descriptors(std::vector<cv::KeyPoint>& kpts, cv::Mat& desc);
+  CV_WRAP void Compute_Descriptors(std::vector<cv::KeyPoint>& kpts, CV_OUT cv::Mat& desc);
   void Compute_Main_Orientation_SURF(cv::KeyPoint& kpt) const;
 
   // SURF Pattern Descriptor
