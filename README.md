@@ -10,21 +10,30 @@ Compile the AKAZE code without OpenMP:
 
 You then need to go into the OpenCV source code, and edit two files:
 
-opencv-2.4.8/modules/python/src2/cv2.cpp:
-add the following line                    
+**opencv-2.4.8/modules/python/src2/cv2.cpp:**
+
+add the following line
+
     #include "/home/kevin/Imperial/PhD/github/akaze/src/lib/AKAZE.h"          
 
-opencv-2.4.8/modules/python/CMakeLists.txt:
-add                
-    "/home/kevin/Imperial/PhD/github/akaze/src/lib/"                 
+**opencv-2.4.8/modules/python/CMakeLists.txt:**
+
+add
+
+    "/home/kevin/Imperial/PhD/github/akaze/src/lib/"
+    
 to `ocv_module_include_directories`    
 
-add           
-    "/home/kevin/Imperial/PhD/github/akaze/src/lib/AKAZE.h"          
+add
+
+    "/home/kevin/Imperial/PhD/github/akaze/src/lib/AKAZE.h"
+    
 to the variable `opencv_hdrs`
    
-add             
-    "/home/kevin/Imperial/PhD/github/akaze/build/lib/libAKAZE.a"              
+add
+
+    "/home/kevin/Imperial/PhD/github/akaze/build/lib/libAKAZE.a"
+    
 to the last `target_link_libraries`
 
 and that's all, the code should be automatically wrapped as the rest of
