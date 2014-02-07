@@ -1,4 +1,51 @@
-## README - A-KAZE Features
+## About this fork
+
+This fork is about small code adjustment to add the AKAZE class to the OpenCV Python API.
+
+Compile the AKAZE code without OpenMP:
+    cd akaze/
+    mkdir build
+    cmake -DUSE_OPENMP=OFF ..
+    make
+
+You then need to go into the OpenCV source code, and edit two files:
+
+opencv-2.4.8/modules/python/src2/cv2.cpp:
+add the following line
+    #include "/home/kevin/Imperial/PhD/github/akaze/src/lib/AKAZE.h"
+
+opencv-2.4.8/modules/python/CMakeLists.txt:
+add
+    "/home/kevin/Imperial/PhD/github/akaze/src/lib/"
+to `ocv_module_include_directories`    
+
+add
+    "/home/kevin/Imperial/PhD/github/akaze/src/lib/AKAZE.h"
+to the variable `opencv_hdrs`
+   
+add
+    "/home/kevin/Imperial/PhD/github/akaze/build/lib/libAKAZE.a"
+to the last `target_link_libraries`
+
+and that's all, the code should be automatically wrapped as the rest of
+OpenCV. Of course you need to recompile OpenCV with Python support enabled.
+
+You can now use AKAZE features from Python:
+
+    import cv2
+    img = cv2.imread("test.png",0).astype('float32').copy()
+
+    options = cv2.AKAZEOptions()
+    options.img_width = img.shape[1]
+    options.img_height = img.shape[0]
+
+    akaze = cv2.AKAZE(options)
+    akaze.Create_Nonlinear_Scale_Space(img)
+    feat = akaze.Feature_Detection()
+    desc = akaze.Compute_Descriptors(feat)
+
+
+## README - A-KAZE Features    
 
 Version: 1.1.0
 Date: 24-11-2013
