@@ -1855,6 +1855,28 @@ void AKAZE::Save_Scale_Space(void) {
 
 /* ************************************************************************* */
 /**
+ * @brief This method returns the scale space as a list. If rescale=true
+ * (default), then the images have their intensity rescaled between 0-255 and
+ * turned into uint8.
+*/
+void AKAZE::Get_Scale_Space(std::vector<cv::Mat>& scaleSpace, bool rescale) {
+
+    scaleSpace.resize(evolution_.size());
+    Mat img_aux;
+    string outputFile;
+
+    for (size_t i = 0; i < evolution_.size(); i++) {
+        img_aux = evolution_[i].Lt;
+        if (rescale) {
+            convert_scale(img_aux);
+            img_aux.convertTo(img_aux,CV_8U,255.0,0);
+        }
+        scaleSpace[i] = img_aux;
+    }
+}
+
+/* ************************************************************************* */
+/**
  * @brief This method saves the feature detector responses of the nonlinear scale space
  * into jpg images
 */

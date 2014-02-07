@@ -54,6 +54,10 @@ You can now use AKAZE features from Python:
     feat = akaze.Feature_Detection()
     desc = akaze.Compute_Descriptors(feat)
 
+    scaleSpace = akaze.Get_Scale_Space()
+    for i,img in enumerate(scaleSpace):
+        cv2.imwrite(str(i)+".png",img)
+
 
 ## README - A-KAZE Features    
 
