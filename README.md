@@ -3,6 +3,7 @@
 This fork is about small code adjustment to add the AKAZE class to the OpenCV Python API.
 
 Compile the AKAZE code without OpenMP:
+
     cd akaze/
     mkdir build
     cmake -DUSE_OPENMP=OFF ..
