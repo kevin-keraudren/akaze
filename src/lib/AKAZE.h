@@ -190,6 +190,7 @@ public:
   void Allocate_Memory_Evolution(void);
   CV_WRAP int Create_Nonlinear_Scale_Space(const cv::Mat& img);
   CV_WRAP void Get_Scale_Space(CV_OUT std::vector<cv::Mat>& scaleSpace, bool rescale=true);
+  CV_WRAP void Get_Diffusivity(CV_OUT std::vector<cv::Mat>& diffusivity, bool rescale=true);
   CV_WRAP void Feature_Detection(CV_OUT std::vector<cv::KeyPoint>& kpts);
   void Compute_Determinant_Hessian_Response(void);
   void Compute_Multiscale_Derivatives(void);

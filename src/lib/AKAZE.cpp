@@ -1875,6 +1875,23 @@ void AKAZE::Get_Scale_Space(std::vector<cv::Mat>& scaleSpace, bool rescale) {
     }
 }
 
+
+void AKAZE::Get_Diffusivity(std::vector<cv::Mat>& diffusivity, bool rescale) {
+
+    diffusivity.resize(evolution_.size());
+    Mat img_aux;
+    string outputFile;
+
+    for (size_t i = 0; i < evolution_.size(); i++) {
+        img_aux = evolution_[i].Lflow;
+        if (rescale) {
+            convert_scale(img_aux);
+            img_aux.convertTo(img_aux,CV_8U,255.0,0);
+        }
+        diffusivity[i] = img_aux;
+    }
+}
+
 /* ************************************************************************* */
 /**
  * @brief This method saves the feature detector responses of the nonlinear scale space
