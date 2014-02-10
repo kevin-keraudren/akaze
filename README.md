@@ -43,7 +43,7 @@ OpenCV. Of course you need to recompile OpenCV with Python support enabled.
 You can now use AKAZE features from Python:
 
     import cv2
-    img = cv2.imread("test.png",0).astype('float32').copy()
+    img = cv2.imread("test.png",0).astype('float32')
 
     options = cv2.AKAZEOptions()
     options.img_width = img.shape[1]
