@@ -140,6 +140,7 @@ void AKAZE::Allocate_Memory_Evolution(void) {
 int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
 	double t1 = 0.0, t2 = 0.0;
+    
 
 	if (evolution_.size() == 0) {
 		cerr << "Error generating the nonlinear scale space!!" << endl;
@@ -162,7 +163,9 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 
 	// Now generate the rest of evolution levels
 	for (size_t i = 1; i < evolution_.size(); i++) {
-
+        
+        cv::Mat diffX, diffY, diffXY;
+        
 		if (evolution_[i].octave > evolution_[i-1].octave) {
 			halfsample_image(evolution_[i-1].Lt,evolution_[i].Lt);
 			kcontrast_ = kcontrast_*0.75;
@@ -172,7 +175,7 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 		}
 
 		gaussian_2D_convolution(evolution_[i].Lt,evolution_[i].Lsmooth,0,0,1.0);
-
+        
 		// Compute the Gaussian derivatives Lx and Ly
 		image_derivatives_scharr(evolution_[i].Lsmooth,evolution_[i].Lx,1,0);
 		image_derivatives_scharr(evolution_[i].Lsmooth,evolution_[i].Ly,0,1);
@@ -191,13 +194,20 @@ int AKAZE::Create_Nonlinear_Scale_Space(const cv::Mat& img) {
 		case 3:
 			charbonnier_diffusivity(evolution_[i].Lx,evolution_[i].Ly,evolution_[i].Lflow,kcontrast_);
 			break;
+        case 4:
+            weickert_tensor_diffusivity( evolution_[i].Lsmooth, diffX, diffY,diffXY, kcontrast_);
+            break;
 		default:
 			cerr << "Diffusivity: " << diffusivity_ << " is not supported" << endl;
 		}
 
 		// Perform FED n inner steps
 		for (int j = 0; j < nsteps_[i-1]; j++) {
-			nld_step_scalar(evolution_[i].Lt,evolution_[i].Lflow,evolution_[i].Lstep,tsteps_[i-1][j]);
+            if (diffusivity_ == 4){
+                nld_step_tensor(evolution_[i].Lt,diffX,diffY,diffXY,evolution_[i].Lstep,tsteps_[i-1][j]);
+            }
+            else
+                nld_step_scalar(evolution_[i].Lt,evolution_[i].Lflow,evolution_[i].Lstep,tsteps_[i-1][j]);
 		}
 	}
 
@@ -1848,7 +1858,7 @@ void AKAZE::Save_Scale_Space(void) {
 	for (size_t i = 0; i < evolution_.size(); i++) {
 		convert_scale(evolution_[i].Lt);
 		evolution_[i].Lt.convertTo(img_aux,CV_8U,255.0,0);
-		outputFile = "../output/evolution_" + to_formatted_string(i, 2) + ".jpg";
+		outputFile = "evolution_" + to_formatted_string(i, 2) + ".png";
 		imwrite(outputFile,img_aux);
 	}
 }

@@ -118,6 +118,59 @@ void weickert_diffusivity(const cv::Mat& Lx, const cv::Mat& Ly, cv::Mat& dst, co
 	dst = 1.0 - dst;
 }
 
+void weickert_tensor_diffusivity(const cv::Mat& img, cv::Mat& diffX, cv::Mat& diffY, cv::Mat& diffXY, const float& k) {
+
+    cv::Mat eigen = cv::Mat::zeros( img.size(), CV_32FC(6) );
+    cv::cornerEigenValsAndVecs( img, eigen,5,5 );
+    
+    diffX = cv::Mat::zeros( img.size(), CV_32F);
+    diffY = cv::Mat::zeros( img.size(), CV_32F);
+    diffXY = cv::Mat::zeros( img.size(), CV_32F);
+
+    float lambda1, lambda2, v1x, v1y, v2x, v2y;
+    for (int i = 0; i < img.rows; i++) {
+		for (int j = 0; j < img.cols; j++) {
+            // extreme version of EED: diffuse orthogonally to edges
+            lambda1 = 0;
+            lambda2 = 1.0;
+            if (abs(eigen.at<Vec6f>(i,j)[0]) >= abs(eigen.at<Vec6f>(i,j)[1])) {
+                if (abs(eigen.at<Vec6f>(i,j)[0]) <= 1e-15) {
+                    lambda1 = lambda2;
+                        v1x = 1;
+                        v1y = 0;
+                        v2x = 0;
+                        v2y = 1;
+                }
+                else {
+                    v1x = eigen.at<Vec6f>(i,j)[2];
+                    v1y = eigen.at<Vec6f>(i,j)[3];
+                    v2x = eigen.at<Vec6f>(i,j)[4];
+                    v2y = eigen.at<Vec6f>(i,j)[5];
+                }
+            }
+            else {
+                if (abs(eigen.at<Vec6f>(i,j)[1]) <= 1e-15) {
+                    lambda1 = lambda2;
+                        v1x = 1;
+                        v1y = 0;
+                        v2x = 0;
+                        v2y = 1;
+                }
+                else {
+                v1x = eigen.at<Vec6f>(i,j)[4];
+                v1y = eigen.at<Vec6f>(i,j)[5];
+                v2x = eigen.at<Vec6f>(i,j)[2];
+                v2y = eigen.at<Vec6f>(i,j)[3];
+                }
+            }
+  
+            diffY.at<float>(i,j) = lambda1*v1x*v1x   + lambda2*v2x*v2x;
+            diffX.at<float>(i,j) = lambda1*v1y*v1y   + lambda2*v2y*v2y;
+            diffXY.at<float>(i,j) = lambda1*v1x*v1y + lambda2*v2x*v2y;
+        }
+    }
+}
+
 /* ************************************************************************* */
 /**
  * @brief This function computes Charbonnier conductivity coefficient gc
@@ -303,6 +356,63 @@ void nld_step_scalar(cv::Mat& Ld, const cv::Mat& c, cv::Mat& Lstep, const float&
 		*(Lstep.ptr<float>(i)+Lstep.cols-1) = 0.5*stepsize*(-xneg + ypos-yneg);
 	}
 
+	Ld = Ld + Lstep;
+}
+
+/* ************************************************************************* */
+/**
+ * @brief This function performs a tensor non-linear diffusion step
+ * @param Ld2 Output image in the evolution
+ * @param c Conductivity image
+ * @param Lstep Previous image in the evolution
+ * @param stepsize The step size in time units
+ * @note Forward Euler Scheme 3x3 stencil
+ * The function c is a scalar value that depends on the gradient norm
+ * dL_by_ds = d(c dL_by_dx)_by_dx + d(c dL_by_dy)_by_dy
+ */
+void nld_step_tensor(cv::Mat& Ld, const cv::Mat& diffX, const cv::Mat& diffY, const cv::Mat& diffXY, cv::Mat& Lstep, const float& stepsize) {
+
+#ifdef _OPENMP
+#pragma omp parallel for schedule(dynamic)
+#endif
+	for (int i = 1; i < Lstep.rows-1; i++) {
+		for (int j = 1; j < Lstep.cols-1; j++) {
+
+*(Lstep.ptr<float>(i)+j) = stepsize*(
+                                     -0.25*(diffXY.at<float>(i-1,j)+diffXY.at<float>(i,j+1))*(*(Ld.ptr<float>(i-1)+j+1)) +
+                                     0.5*(diffY.at<float>(i,j+1)+diffY.at<float>(i,j))*(*(Ld.ptr<float>(i)+j+1)) +
+                                     0.25*(diffXY.at<float>(i+1,j)+diffXY.at<float>(i,j+1))*(*(Ld.ptr<float>(i+1)+j+1)) +
+                                     0.5*(diffX.at<float>(i-1,j)+diffX.at<float>(i,j))*(*(Ld.ptr<float>(i-1)+j)) -
+                                     0.5*(+(diffX.at<float>(i-1,j)+2*diffX.at<float>(i,j)+diffX.at<float>(i+1,j))
+                                          +(diffY.at<float>(i,j-1)+2*diffY.at<float>(i,j)+diffY.at<float>(i,j+1)))*(*(Ld.ptr<float>(i)+j)) +
+                                     0.5*(diffX.at<float>(i+1,j)+diffX.at<float>(i,j))*(*(Ld.ptr<float>(i+1)+j)) +
+                                     0.25*(diffXY.at<float>(i-1,j)+diffXY.at<float>(i,j-1))*(*(Ld.ptr<float>(i-1)+j-1)) +
+                                     0.5*(diffY.at<float>(i,j-1)+diffY.at<float>(i,j))*(*(Ld.ptr<float>(i)+j-1)) +
+                                     -0.25*(diffXY.at<float>(i+1,j)+diffXY.at<float>(i,j-1))*(*(Ld.ptr<float>(i+1)+j-1)));
+            
+        }
+	}
+
+    for (int j = 1; j < Lstep.cols-1; j++) {
+        *(Ld.ptr<float>(0)+j) = *(Ld.ptr<float>(1)+j);
+        *(Lstep.ptr<float>(0)+j) = *(Lstep.ptr<float>(1)+j);       
+    }
+
+    for (int j = 1; j < Lstep.cols-1; j++) {
+        *(Ld.ptr<float>(Lstep.rows-1)+j) = *(Ld.ptr<float>(Lstep.rows-2)+j);
+        *(Lstep.ptr<float>(Lstep.rows-1)+j) = *(Lstep.ptr<float>(Lstep.rows-2)+j);       
+    }
+
+    for (int i = 1; i < Lstep.rows-1; i++) {
+        *(Ld.ptr<float>(i)+0) = *(Ld.ptr<float>(i)+1);
+        *(Lstep.ptr<float>(i)+0) = *(Lstep.ptr<float>(i)+1);  
+    }
+
+    for (int i = 1; i < Lstep.rows-1; i++) {
+        *(Ld.ptr<float>(i)+ Lstep.cols-1) = *(Ld.ptr<float>(i)+ Lstep.cols-2);
+        *(Lstep.ptr<float>(i)+ Lstep.cols-1) = *(Lstep.ptr<float>(i)+ Lstep.cols-2);  
+    }
+    
 	Ld = Ld + Lstep;
 }
 
